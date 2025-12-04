@@ -149,7 +149,7 @@ curl http://localhost:19530/healthz
 
 ### 5.3 Configure Data Directory
 
-Place your documents folder (`your-documents-folder-name`), containing all data files (PDFs, Markdown, code, docs, etc.), inside a top-level `data` directory in the root of this repository.
+Place your documents folder (`your-documents-folder-name`), containing all data files (PDFs, Markdown, code, docs, etc.), inside a `YOUR_INPUT_FOLDER_NAME` in the top-level `data` directory in the root of this repository.
 
 Example structure:
 SemantiQ/data/your-documents-folder-name
@@ -162,7 +162,7 @@ Edit `config.py`:
 
 ```python
 # Set your input directory to documents folder
-INPUT_DIR = DATA_DIR / "your-documents"
+INPUT_FOLDER_NAME = "YOUR_INPUT_FOLDER_NAME"
 
 # Choose embedding model - provider to use
 ACTIVE_EMBEDDING_PROVIDER = "openai"  # or "sentence_transformers"
