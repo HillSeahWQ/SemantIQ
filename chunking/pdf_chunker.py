@@ -6,7 +6,7 @@ Multimodal PDF Chunker with intelligent page analysis and processing.
 This chunker:
 - Analyzes each page for text, tables, and images
 - Detects tables spanning multiple pages
-- Converts image-heavy pages (proprotion above an area threshold) to images for vision model input
+- Converts image-heavy pages (proportion above an area threshold) to images for vision model input
 - Provides rich metadata for each chunk
 
 Inspired by - https://medium.com/@saptarshi701/advanced-chunking-for-pdf-word-with-embedded-images-using-regular-parsers-and-gpt-4o-7f0d5eb97052
@@ -14,58 +14,61 @@ Inspired by - https://medium.com/@saptarshi701/advanced-chunking-for-pdf-word-wi
 Key Features
 
 1. Intelligent Page Analysis
-
-Calculates image coverage ratio for each page
-Detects when images exceed your threshold (default 30%)
-Analyzes content composition (text, tables, images)
+   - Calculates image coverage ratio for each page
+   - Detects when images exceed your threshold (default 30%)
+   - Analyzes content composition (text, tables, images)
 
 2. Image-Heavy Page Processing
-
-Pages with high image coverage are converted to images
-Processed with vision model (GPT-4o) using a detailed prompt
-Critical: Only triggers if the page has NO tables (tables are handled separately)
+   - Pages with high image coverage are converted to images
+   - Processed with vision model (GPT-4o) using a detailed prompt
+   - Critical: Only triggers if the page has NO tables (tables are handled separately)
 
 3. Multi-Page Table Detection
-
-Detects tables spanning multiple consecutive pages
-Groups them into single chunks
-Preserves HTML table structure in metadata
+   - Detects tables spanning multiple consecutive pages
+   - Groups them into single chunks
+   - Preserves HTML table structure in metadata
 
 4. Smart Integration Logic
-Decision Tree:
-├── Is page part of multi-page table? → Handle as TABLE chunk
-├── Else: Does page exceed image threshold AND has no tables? → VISION process
-└── Else: Standard text extraction → TEXT/MIXED chunk
-This ensures tables are never interfered with by the image processing logic!
+   Decision Tree:
+   ├── Is page part of multi-page table? → Handle as TABLE chunk
+   ├── Else: Does page exceed image threshold AND has no tables? → VISION process
+   └── Else: Standard text extraction → TEXT/MIXED chunk
+   This ensures tables are never interfered with by the image processing logic!
 
-5. Rich Metadata
-Each chunk includes:
+5. Unified Metadata Format
+   Universal fields (compatible with all document types):
+   - source_file: Document path
+   - chunk_id: Unique chunk identifier
+   - page_number: Page number in document
+   - chunk_type: TEXT, TABLE, IMAGE_HEAVY_PAGE, or MIXED
+   - text_length: Character count
+   - preview: First 200 characters
 
-Page number and chunk type
-Text length, table count, image count
-Image coverage ratio
-Table spanning information
-Bounding box coordinates
-Whether it was vision-processed
-HTML table representation
+   Document-specific metadata (in document_specific_metadata dict):
+   - total_pages: Total pages in document
+   - num_tables: Number of tables in chunk
+   - num_images: Number of images in chunk
+   - image_coverage_ratio: Ratio of page covered by images
+   - table_content: List of table contents
+   - is_vision_processed: Whether vision model was used
+   - image_details: Details about images (bbox, size, etc.)
+   - bounding_boxes: Bounding boxes for layout elements
 
 ## Usage
 ```python
 # Install dependencies
-pip install langchain-unstructured langchain-openai pymupdf pillow unstructured unstructured[pdf]
+pip install langchain-openai pymupdf pillow
 
 # Set environment variables
 export OPENAI_API_KEY="your-key"
-export UNSTRUCTURED_API_KEY="your-key"  # Optional, for API usage
 
 # Use the chunker
 chunker = MultimodalPDFChunker(
     image_coverage_threshold=0.3,  # Adjust as needed
-    vision_model="gpt-4o",
-    use_unstructured_api=True
+    vision_model="gpt-4o"
 )
 
-chunks = chunker.chunk_pdf("document.pdf")
+chunks = chunker.chunk("document.pdf")
 
 # Access chunks
 for chunk in chunks:
@@ -73,75 +76,14 @@ for chunk in chunks:
     print(chunk.metadata.to_dict())
 ```
 
-##Customization Tips
-
-Adjust threshold: Change image_coverage_threshold (0.0-1.0)
-Different vision model: Use "gpt-4o-mini" or "claude-3-5-sonnet-20241022"
-Local processing: Set use_unstructured_api=False and install dependencies
-Custom prompts: Modify _process_page_with_vision() prompt
+## Customization Tips
+- Adjust threshold: Change image_coverage_threshold (0.0-1.0)
+- Different vision model: Use "gpt-4o-mini" or "claude-3-5-sonnet-20241022"
+- Custom prompts: Modify _process_page_with_vision() prompt
 
 The chunker is production-ready and handles edge cases like overlapping content types gracefully!
 """
-"""
-Multimodal PDF Chunker with intelligent page analysis and processing.
 
-This chunker:
-- Analyzes each page for text, tables, and images
-- Detects tables spanning multiple pages
-- Converts image-heavy pages to vision model input
-- Provides rich metadata for each chunk
-
-## Schema for a Chunk object.
-
-Each Chunk represents a semantically meaningful unit of content extracted from a document.
-Intended for use in downstream vector database ingestion and retrieval tasks.
-
-Attributes
-----------
-content : str
-    The textual content of the chunk.
-
-metadata : dict
-    Additional contextual information about the chunk.
-    
-    Keys
-    ----
-    page_number : int
-        The page number from which the chunk was extracted (1-indexed).
-    
-    chunk_type : str
-        Type of chunk, e.g. "text", "table", "image", or "mixed".
-    
-    total_pages : int
-        Total number of pages in the source document.
-    
-    source_file : str
-        The name or path of the source file this chunk was derived from.
-    
-    text_length : int
-        The number of characters in the chunk content.
-    
-    num_tables : int
-        Number of tables contained within the chunk.
-    
-    num_images : int
-        Number of images contained within the chunk.
-    
-    image_coverage_ratio : float
-        Ratio (0–1) indicating how much of the page area is covered by images.
-    
-    table_content : List[str]
-        Extracted text or HTML representations of tables within the chunk.
-    
-    is_vision_processed : bool
-        Whether this chunk has been processed by a vision model for OCR, layout, or image captioning.
-    
-    image_details : List[Dict]
-        A list of dictionaries describing detected images (e.g. filename, caption, size, or embeddings).
-    
-    bounding_boxes : List[Dict]
-        Bounding box coordinates of layout elements (e.g. tables, figures, paragraphs) in document coordinate space.
-"""
 import base64
 import io
 import logging
@@ -160,21 +102,20 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 @dataclass
 class PDFChunkMetadata(ChunkMetadata):
-    """Extended metadata for PDF chunks."""
+    """Extended metadata for PDF chunks with unified format."""
+    
+    # Universal fields (compatible with all document types)
     page_number: int = 0
     chunk_type: ChunkType = ChunkType.TEXT
-    total_pages: int = 0
     text_length: int = 0
-    num_tables: int = 0
-    num_images: int = 0
-    image_coverage_ratio: float = 0.0
-    table_content: List[str] = field(default_factory=list)
-    is_vision_processed: str = "False"  # Store as string for vector DB
-    image_details: List[Dict[str, Any]] = field(default_factory=list)
-    bounding_boxes: List[Dict[str, Any]] = field(default_factory=list)
-
+    preview: str = ""  # First 200 chars for quick reference
+    
+    # Document-specific metadata (PDF-specific fields)
+    document_specific_metadata: Dict[str, Any] = field(default_factory=dict)
+    
 
 class MultimodalPDFChunker(BaseChunker):
     """
@@ -184,7 +125,7 @@ class MultimodalPDFChunker(BaseChunker):
     - Page-based chunking with intelligent analysis
     - Table and image detection using PyMuPDF
     - Image coverage analysis with vision model processing
-    - Comprehensive metadata generation
+    - Comprehensive metadata generation with unified format
     """
     
     def __init__(
@@ -217,15 +158,9 @@ class MultimodalPDFChunker(BaseChunker):
             "chunk_id": int,
             "page_number": int,
             "chunk_type": str,
-            "total_pages": int,
             "text_length": int,
-            "num_tables": int,
-            "num_images": int,
-            "image_coverage_ratio": float,
-            "table_content": str,  # Stored as JSON string
-            "is_vision_processed": str,
-            "image_details": str,  # Stored as JSON string
-            "bounding_boxes": str,  # Stored as JSON string
+            "preview": str,
+            "document_specific_metadata": str,  # Stored as JSON string
         }
     
     def chunk_pdf(self, pdf_path: str) -> List[Chunk]:
@@ -294,7 +229,8 @@ class MultimodalPDFChunker(BaseChunker):
                 stats["total_tables"] += page_analysis["num_tables"]
                 stats["total_images"] += page_analysis["num_images"]
                 
-                if chunk.metadata.is_vision_processed == "True":
+                doc_specific = chunk.metadata.document_specific_metadata
+                if doc_specific.get("is_vision_processed", False):
                     stats["vision_processed_pages"] += 1
                 elif chunk.metadata.chunk_type == ChunkType.TABLE:
                     stats["table_pages"] += 1
@@ -493,18 +429,25 @@ OUTPUT FORMAT: Provide a flowing, readable description that captures all informa
             
             chunk_type = ChunkType.MIXED if analysis["num_images"] > 0 else ChunkType.TABLE
             
+            # Document-specific metadata for PDF
+            doc_specific = {
+                "total_pages": total_pages,
+                "num_tables": analysis["num_tables"],
+                "num_images": analysis["num_images"],
+                "image_coverage_ratio": analysis["image_coverage_ratio"],
+                "table_content": analysis["table_content"],
+                "is_vision_processed": False,
+                "image_details": analysis["image_details"],
+                "bounding_boxes": analysis["table_bboxes"]
+            }
+            
             metadata = PDFChunkMetadata(
                 source_file=pdf_path,
                 page_number=page_num,
                 chunk_type=chunk_type,
-                total_pages=total_pages,
                 text_length=len(content),
-                num_tables=analysis["num_tables"],
-                num_images=analysis["num_images"],
-                image_coverage_ratio=analysis["image_coverage_ratio"],
-                table_content=analysis["table_content"],
-                image_details=analysis["image_details"],
-                bounding_boxes=analysis["table_bboxes"]
+                preview=content[:200],
+                document_specific_metadata=doc_specific
             )
             
         elif analysis["exceeds_threshold"]:
@@ -512,16 +455,25 @@ OUTPUT FORMAT: Provide a flowing, readable description that captures all informa
             
             content = self._process_page_with_vision(page, page_num)
             
+            # Document-specific metadata for vision-processed page
+            doc_specific = {
+                "total_pages": total_pages,
+                "num_tables": 0,
+                "num_images": analysis["num_images"],
+                "image_coverage_ratio": analysis["image_coverage_ratio"],
+                "table_content": [],
+                "is_vision_processed": True,
+                "image_details": analysis["image_details"],
+                "bounding_boxes": []
+            }
+            
             metadata = PDFChunkMetadata(
                 source_file=pdf_path,
                 page_number=page_num,
                 chunk_type=ChunkType.IMAGE_HEAVY_PAGE,
-                total_pages=total_pages,
                 text_length=len(content),
-                num_images=analysis["num_images"],
-                image_coverage_ratio=analysis["image_coverage_ratio"],
-                is_vision_processed="True",
-                image_details=analysis["image_details"]
+                preview=content[:200],
+                document_specific_metadata=doc_specific
             )
             
         else:
@@ -530,15 +482,25 @@ OUTPUT FORMAT: Provide a flowing, readable description that captures all informa
             content = analysis["text"].strip()
             chunk_type = ChunkType.MIXED if analysis["num_images"] > 0 else ChunkType.TEXT
             
+            # Document-specific metadata for text page
+            doc_specific = {
+                "total_pages": total_pages,
+                "num_tables": 0,
+                "num_images": analysis["num_images"],
+                "image_coverage_ratio": analysis["image_coverage_ratio"],
+                "table_content": [],
+                "is_vision_processed": False,
+                "image_details": analysis["image_details"],
+                "bounding_boxes": []
+            }
+            
             metadata = PDFChunkMetadata(
                 source_file=pdf_path,
                 page_number=page_num,
                 chunk_type=chunk_type,
-                total_pages=total_pages,
                 text_length=len(content),
-                num_images=analysis["num_images"],
-                image_coverage_ratio=analysis["image_coverage_ratio"],
-                image_details=analysis["image_details"]
+                preview=content[:200],
+                document_specific_metadata=doc_specific
             )
         
         return Chunk(content=content, metadata=metadata)
