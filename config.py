@@ -153,7 +153,7 @@ EMBEDDING_CONFIG = {
             "add_language_prefix": True  # Prepend language name for better context
         },
         # Code-specific transformer models
-        "code_transformer": {
+        "code_transformers": {
             # Options:
             # - "microsoft/codebert-base" (768 dim)
             # - "microsoft/graphcodebert-base" (768 dim) 

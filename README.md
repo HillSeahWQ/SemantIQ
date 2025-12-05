@@ -165,7 +165,7 @@ Edit `config.py`:
 INPUT_FOLDER_NAME = "YOUR_INPUT_FOLDER_NAME"
 
 # Choose embedding model - provider to use
-ACTIVE_EMBEDDING_PROVIDER = "openai"  # or "sentence_transformers"
+ACTIVE_EMBEDDING_PROVIDER = "openai"  # or "sentence_transformers", "code_transformers"
 
 # Choose desired supported vector database
 ACTIVE_VECTOR_DB = "faiss"  # Options: "milvus", "faiss"
@@ -203,7 +203,7 @@ uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --
 
 e.g. for .py, .java, .rs code chunks, if we have sentence transformers implemented embedding models we do:
 ```bash
-uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME] --embedding-type code --embedding-provider code_transformer --embedding-model microsoft/codebert-base
+uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME] --embedding-type code --embedding-provider code_transformers --embedding-model microsoft/codebert-base
 ```
 ---
 

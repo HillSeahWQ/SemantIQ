@@ -333,7 +333,7 @@ class EmbeddingManager:
         Create an embedder based on provider and type.
         
         Args:
-            provider: "openai", "sentence_transformers", or "code_transformer"
+            provider: "openai", "sentence_transformers", or "code_transformers"
             embedding_type: "text" or "code"
             config: Configuration dictionary with model settings
             
@@ -367,7 +367,7 @@ class EmbeddingManager:
                     normalize=config.get("normalize", True),
                     add_language_prefix=config.get("add_language_prefix", True)
                 )
-            elif provider == "code_transformer":
+            elif provider == "code_transformers":
                 return CodeEmbedder(
                     model=config.get("model", "microsoft/codebert-base"),
                     batch_size=config.get("batch_size", 32),
