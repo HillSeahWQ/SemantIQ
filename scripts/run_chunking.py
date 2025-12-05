@@ -150,6 +150,18 @@ Examples:
     
     # === GLOBAL ARGUMENTS ===
     parser.add_argument(
+        "--word-process-images",
+        action="store_true",
+        help="Word: Enable image processing with vision model (default: from config)"
+    )
+    parser.add_argument(
+        "--word-no-process-images",
+        action="store_true",
+        help="Word: Disable image processing (overrides config)"
+    )
+    
+    # === GLOBAL ARGUMENTS ===
+    parser.add_argument(
         "--log-level",
         type=str,
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
