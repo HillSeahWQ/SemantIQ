@@ -8,9 +8,11 @@ from typing import Dict, Any
 # ============================================================================
 # PROJECT PATHS
 # ============================================================================
+INPUT_FOLDER_NAME = "test" # TODO: Edit input folder name - decides: chunks output file name, indices output file name
+
 PROJECT_ROOT = Path(__file__).parent
 DATA_DIR = PROJECT_ROOT / "data"
-INPUT_DIR = DATA_DIR / "kyndryl-docs-test"
+INPUT_DIR = DATA_DIR / INPUT_FOLDER_NAME
 CHUNKS_DIR = DATA_DIR / "chunks"
 LOGS_DIR = PROJECT_ROOT / "logs"
 
@@ -45,7 +47,7 @@ LOGGING_CONFIG = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "detailed",
-            "filename": str(LOGS_DIR / "rag_pipeline.log"),
+            "filename": str(LOGS_DIR / f"{INPUT_FOLDER_NAME}_rag_pipeline.log"),
             "maxBytes": 10485760,  # 10MB
             "backupCount": 5
         }
@@ -65,11 +67,56 @@ CHUNKING_CONFIG = {
         "vision_model": "gpt-4o",
         "log_level": "INFO"
     },
-    # Add more document types here as needed
-    # "docx": {
-    #     "chunker_class": "DocxChunker",
-    #     ...
+    "word_doc": {
+        "vision_model": "gpt-4o"
+    },
+    # Word Document Chunker Configuration
+    "word": {
+        "max_chunk_size": 1000,            # Maximum characters per chunk
+        "vision_model": "gpt-4o",          # Vision model for image processing
+        "process_images": True,            # Whether to process images with vision model
+        "log_level": "INFO"                # Logging level
+    },
+    
+    # Code Chunker Configuration
+    "code": {
+        "max_chunk_size": 1500,            # Maximum characters per chunk
+        "min_chunk_size": 100,             # Minimum characters per chunk
+        "include_imports": True,           # Include imports in context
+        "include_docstrings": True,        # Include docstrings
+        "overlap_lines": 3,                # Lines of overlap between chunks
+        "log_level": "INFO"                # Logging level
+    },
+    
+    # ========================================================================
+    # SECTION: Add more document type configurations here
+    # ========================================================================
+    #
+    # # Markdown Chunker Configuration
+    # "markdown": {
+    #     "chunk_by_headers": True,        # Chunk by markdown headers
+    #     "max_chunk_size": 1000,          # Maximum characters per chunk
+    #     "preserve_code_blocks": True,    # Keep code blocks intact
+    #     "log_level": "INFO"
     # },
+    #
+    # # Text Chunker Configuration
+    # "text": {
+    #     "chunk_size": 1000,              # Characters per chunk
+    #     "chunk_overlap": 200,            # Overlap between chunks
+    #     "separator": "\n\n",             # Chunk separator
+    #     "log_level": "INFO"
+    # },
+    #
+    # # HTML Chunker Configuration
+    # "html": {
+    #     "chunk_by_sections": True,       # Chunk by HTML sections
+    #     "max_chunk_size": 1000,          # Maximum characters per chunk
+    #     "extract_tables": True,          # Extract HTML tables
+    #     "log_level": "INFO"
+    # },
+    #
+    # ========================================================================
 }
 
 # ============================================================================
@@ -92,13 +139,30 @@ EMBEDDING_CONFIG = {
             "dimensions": 384
         }
     },
-    # Future: code embeddings
-    # "code": {
-    #     "openai": {
-    #         "model": "text-embedding-3-large",
-    #         ...
-    #     }
-    # }
+    # Code embeddings
+    "code": {
+        # OpenAI embeddings for code (with code-specific preprocessing)
+        "openai": {
+            "model": "text-embedding-3-large",
+            "batch_size": 64,
+            "normalize": True,
+            "dimensions": 3072,
+            "add_language_prefix": True  # Prepend language name for better context
+        },
+        # Code-specific transformer models
+        "code_transformer": {
+            # Options:
+            # - "microsoft/codebert-base" (768 dim)
+            # - "microsoft/graphcodebert-base" (768 dim) 
+            # - "Salesforce/codet5-base" (768 dim)
+            # - "huggingface/CodeBERTa-small-v1" (768 dim)
+            "model": "microsoft/codebert-base",
+            "batch_size": 32,
+            "normalize": True,
+            "dimensions": 768,
+            "add_language_prefix": True
+        }
+    }
 }
 
 # Current embedding provider to use
@@ -143,7 +207,7 @@ MILVUS_CONFIG = {
 FAISS_CONFIG = {
     "index": {
         "index_dir": str(DATA_DIR / "faiss_indices"),
-        "name": "kyndryl_document_embeddings", # TODO - EDIT HERE
+        "name": f"{INPUT_FOLDER_NAME}_faiss",
         "index_type": "Flat",  # Options: Flat, IVF, HNSW
         "metric_type": "IP",  # Options: IP (inner product), L2
         "normalize": True,  # True for cosine similarity with IP metric
@@ -170,7 +234,7 @@ QUERIES = [ # Modify
 # EXPERIMENT TRACKING
 # ============================================================================
 EXPERIMENT_CONFIG = {
-    "name": "kyndryl_pdfs",
+    "name": f"{INPUT_FOLDER_NAME}_exp",
     "description": "Initial RAG pipeline with PDF multimodal chunking",
     "version": "1.0.0",
     "tags": ["pdf", "multimodal", "milvus", "openai"]
