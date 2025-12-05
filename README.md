@@ -183,12 +183,21 @@ uv run scripts/run_chunking.py --input data/[YOUR-RAW-DOCUMENTS-FOLDER] --output
 # Step 2: Embed and ingest to your chosen vector database
 
 # For FAISS:
-uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME]
+uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME] --embedding-provider [YOUR_EMBEDDING_PROVIDER] --embedding-type [YOUR_EMBEDDING_TYPE]
 
 # For Milvus:
-uv run scripts/ingest_to_milvus.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --collection [YOUR-COLLECTION-NAME]
+uv run scripts/ingest_to_milvus.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --collection [YOUR-COLLECTION-NAME] --embedding-provider [YOUR_EMBEDDING_PROVIDER] --embedding-type [YOUR_EMBEDDING_TYPE]
 ```
 
+1. Decide what data types (example .doc, .pdf are text files; .py, .java are code files) 
+   --embedding-type examples: text, code, ...
+2. Decide what embedding model to use for the specific data types
+   --embedding-provider examples: openai, sentence_transformers, ...
+
+e.g. for .doc, .docx, .pdf chunks, if we have openai implemented embedding models we do: 
+```bash
+uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME] --embedding-provider openai --embedding-type text
+```
 ---
 
 ### 5.6 Query Your Data
