@@ -40,7 +40,7 @@ It enables rapid experimentation and evaluation across all stages of the retriev
 
 ## 2. Key Features
 
-- **Flexible Document Ingestion** — Supports multiple file types (PDF, DOCX, images, tables, etc.) with customizable chunking strategies.  
+- **Flexible Document Ingestion** — Supports multiple file types (PDF, DOCX, code files, images, tables, etc.) with customizable chunking strategies.  
 - **Pluggable Embedding Models** — Swap between text and multimodal embedding models for comparative evaluation.  
 - **Configurable Vector Stores** — Test across FAISS, Milvus, Chroma, and others with adjustable indexing strategies and hyperparameters.  
 - **Evaluation & Logging** — Built-in tools for reproducible experiments, retrieval quality metrics, and performance tracking.  
@@ -183,20 +183,27 @@ uv run scripts/run_chunking.py --input data/[YOUR-RAW-DOCUMENTS-FOLDER] --output
 # Step 2: Embed and ingest to your chosen vector database
 
 # For FAISS:
-uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME] --embedding-provider [YOUR_EMBEDDING_PROVIDER] --embedding-type [YOUR_EMBEDDING_TYPE]
+uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME] --embedding-type [YOUR-EMBEDDING-TYPE] --embedding-provider [YOUR-EMBEDDING-PROVIDER] --embedding-model [YOUR-EMBEDDING-MODEL-CHOICE-FROM-EMBEDDING-PROVIDER]
 
 # For Milvus:
-uv run scripts/ingest_to_milvus.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --collection [YOUR-COLLECTION-NAME] --embedding-provider [YOUR_EMBEDDING_PROVIDER] --embedding-type [YOUR_EMBEDDING_TYPE]
+uv run scripts/ingest_to_milvus.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --collection [YOUR-COLLECTION-NAME] --embedding-type [YOUR-EMBEDDING-TYPE] --embedding-provider [YOUR-EMBEDDING-PROVIDER] --embedding-model [YOUR-EMBEDDING-MODEL-CHOICE-FROM-EMBEDDING-PROVIDER]
 ```
 
 1. Decide what data types (example .doc, .pdf are text files; .py, .java are code files) 
    --embedding-type examples: text, code, ...
-2. Decide what embedding model to use for the specific data types
+2. Decide what embedding model provider to use for the specific data types
    --embedding-provider examples: openai, sentence_transformers, ...
+3. Decide what specifc embedding model from the provider to use
+   --embedding-model examples: for openai: , for sentence_transformers: , ...
 
 e.g. for .doc, .docx, .pdf chunks, if we have openai implemented embedding models we do: 
 ```bash
-uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME] --embedding-provider openai --embedding-type text
+uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME] --embedding-type text --embedding-provider openai --embedding-model text-embedding-3-large
+```
+
+e.g. for .py, .java, .rs code chunks, if we have sentence transformers implemented embedding models we do:
+```bash
+uv run scripts/ingest_to_faiss.py --chunks chunks/[YOUR-CHUNKS-FILENAME].json --index [YOUR-FAISS-INDICES-NAME] --embedding-type code --embedding-provider code_transformer --embedding-model microsoft/codebert-base
 ```
 ---
 

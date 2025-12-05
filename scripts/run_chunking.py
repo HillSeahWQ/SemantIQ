@@ -21,6 +21,7 @@ from config import (
 )
 from chunking.pdf_chunker import MultimodalPDFChunker
 from chunking.word_doc_chunker import WordDocumentChunker
+from chunking.code_chunker import CodeChunker
 from chunking.base import Chunk
 from utils.storage import save_chunks
 from utils.logger import get_logger
@@ -32,6 +33,7 @@ logger = get_logger(__name__)
 SUPPORTED_FILE_TYPES = {
     'pdf': ['.pdf'],
     'word': ['.doc', '.docx'],
+    'code': ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp', '.go', '.rb', '.php', '.rs'],
     # Add more file types here as you implement them
     # 'markdown': ['.md'],
     # 'text': ['.txt'],
@@ -83,7 +85,7 @@ Examples:
         "--file-types",
         type=str,
         nargs='+',
-        choices=['pdf', 'word', 'all'],
+        choices=['pdf', 'word', 'code', 'all'],
         default=['all'],
         help="File types to process (default: all)"
     )
@@ -122,6 +124,28 @@ Examples:
         "--word-no-process-images",
         action="store_true",
         help="Word: Disable image processing (overrides config)"
+    )
+    
+    # === CODE CHUNKER ARGUMENTS ===
+    parser.add_argument(
+        "--code-max-chunk-size",
+        type=int,
+        help=f"Code: Maximum chunk size in characters (default: from config, currently {CHUNKING_CONFIG.get('code', {}).get('max_chunk_size', 1500)})"
+    )
+    parser.add_argument(
+        "--code-min-chunk-size",
+        type=int,
+        help=f"Code: Minimum chunk size in characters (default: from config, currently {CHUNKING_CONFIG.get('code', {}).get('min_chunk_size', 100)})"
+    )
+    parser.add_argument(
+        "--code-include-imports",
+        action="store_true",
+        help="Code: Include imports in context (default: from config)"
+    )
+    parser.add_argument(
+        "--code-no-include-imports",
+        action="store_true",
+        help="Code: Don't include imports (overrides config)"
     )
     
     # === GLOBAL ARGUMENTS ===
@@ -264,6 +288,51 @@ def process_word_files(
     return all_chunks, successful, failed
 
 
+def process_code_files(
+    code_files: List[Path],
+    chunking_config: dict
+) -> Tuple[List[Chunk], int, int]:
+    """
+    Process code files with Code chunker.
+    
+    Args:
+        code_files: List of code file paths
+        chunking_config: Configuration for Code chunker
+    
+    Returns:
+        Tuple of (all_chunks, successful_count, failed_count)
+    """
+    logger.info("")
+    logger.info("="*80)
+    logger.info("PROCESSING CODE FILES")
+    logger.info("="*80)
+    
+    chunker = CodeChunker(**chunking_config)
+    all_chunks = []
+    successful = 0
+    failed = 0
+    
+    for code_file in code_files:
+        logger.info(f"Processing: {code_file.name}")
+        try:
+            chunks = chunker.chunk(code_file)
+            all_chunks.extend(chunks)
+            successful += 1
+            logger.info(f"[SUCCESS] - Generated {len(chunks)} chunks")
+        except Exception as e:
+            failed += 1
+            logger.error(f"[FAILED] - {e}")
+            logger.exception("Error details:")
+    
+    logger.info("")
+    logger.info(f"Code Processing Summary:")
+    logger.info(f"  Successful: {successful}/{len(code_files)}")
+    logger.info(f"  Failed: {failed}/{len(code_files)}")
+    logger.info(f"  Total chunks: {len(all_chunks)}")
+    
+    return all_chunks, successful, failed
+
+
 # ============================================================================
 # SECTION: Add more file type processors here
 # ============================================================================
@@ -357,6 +426,19 @@ def main():
     if args.log_level is not None:
         word_config["log_level"] = args.log_level
     
+    # Code Config
+    code_config = CHUNKING_CONFIG.get("code", {}).copy()
+    if args.code_max_chunk_size is not None:
+        code_config["max_chunk_size"] = args.code_max_chunk_size
+    if args.code_min_chunk_size is not None:
+        code_config["min_chunk_size"] = args.code_min_chunk_size
+    if args.code_include_imports:
+        code_config["include_imports"] = True
+    if args.code_no_include_imports:
+        code_config["include_imports"] = False
+    if args.log_level is not None:
+        code_config["log_level"] = args.log_level
+    
     # === LOG CONFIGURATION ===
     logger.info("="*80)
     logger.info("DOCUMENT CHUNKING PIPELINE")
@@ -377,6 +459,11 @@ def main():
     logger.info(f"  Max chunk size: {word_config.get('max_chunk_size', 'N/A')}")
     logger.info(f"  Vision model: {word_config.get('vision_model', 'N/A')}")
     logger.info(f"  Process images: {word_config.get('process_images', 'N/A')}")
+    logger.info("")
+    logger.info("Code Configuration:")
+    logger.info(f"  Max chunk size: {code_config.get('max_chunk_size', 'N/A')}")
+    logger.info(f"  Min chunk size: {code_config.get('min_chunk_size', 'N/A')}")
+    logger.info(f"  Include imports: {code_config.get('include_imports', 'N/A')}")
     logger.info("")
     
     # === VALIDATION ===
@@ -416,6 +503,16 @@ def main():
         chunks, successful, failed = process_word_files(
             files_by_type['word'],
             word_config
+        )
+        all_chunks.extend(chunks)
+        total_successful += successful
+        total_failed += failed
+    
+    # Process Code files
+    if 'code' in files_by_type:
+        chunks, successful, failed = process_code_files(
+            files_by_type['code'],
+            code_config
         )
         all_chunks.extend(chunks)
         total_successful += successful
