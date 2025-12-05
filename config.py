@@ -10,8 +10,11 @@ from typing import Dict, Any
 # ============================================================================
 INPUT_FOLDER_NAME = "test" # TODO: Edit input folder name - decides: chunks output file name, indices output file name
 
+INPUT_FOLDER_NAME = "test" # TODO: Edit input folder name - decides: chunks output file name, indices output file name
+
 PROJECT_ROOT = Path(__file__).parent
 DATA_DIR = PROJECT_ROOT / "data"
+INPUT_DIR = DATA_DIR / INPUT_FOLDER_NAME
 INPUT_DIR = DATA_DIR / INPUT_FOLDER_NAME
 CHUNKS_DIR = DATA_DIR / "chunks"
 LOGS_DIR = PROJECT_ROOT / "logs"
@@ -78,6 +81,16 @@ CHUNKING_CONFIG = {
         "log_level": "INFO"                # Logging level
     },
     
+    # Code Chunker Configuration
+    "code": {
+        "max_chunk_size": 1500,            # Maximum characters per chunk
+        "min_chunk_size": 100,             # Minimum characters per chunk
+        "include_imports": True,           # Include imports in context
+        "include_docstrings": True,        # Include docstrings
+        "overlap_lines": 3,                # Lines of overlap between chunks
+        "log_level": "INFO"                # Logging level
+    },
+    
     # ========================================================================
     # SECTION: Add more document type configurations here
     # ========================================================================
@@ -129,17 +142,34 @@ EMBEDDING_CONFIG = {
             "dimensions": 384
         }
     },
-    # Future: code embeddings
-    # "code": {
-    #     "openai": {
-    #         "model": "text-embedding-3-large",
-    #         ...
-    #     }
-    # }
+    # Code embeddings
+    "code": {
+        # OpenAI embeddings for code (with code-specific preprocessing)
+        "openai": {
+            "model": "text-embedding-3-large",
+            "batch_size": 64,
+            "normalize": True,
+            "dimensions": 3072,
+            "add_language_prefix": True  # Prepend language name for better context
+        },
+        # Code-specific transformer models
+        "code_transformers": {
+            # Options:
+            # - "microsoft/codebert-base" (768 dim)
+            # - "microsoft/graphcodebert-base" (768 dim) 
+            # - "Salesforce/codet5-base" (768 dim)
+            # - "huggingface/CodeBERTa-small-v1" (768 dim)
+            "model": "microsoft/codebert-base",
+            "batch_size": 32,
+            "normalize": True,
+            "dimensions": 768,
+            "add_language_prefix": True
+        }
+    }
 }
 
 # Current embedding provider to use
-ACTIVE_EMBEDDING_PROVIDER = "openai"  # or "sentence_transformers"
+ACTIVE_EMBEDDING_PROVIDER = "openai"  # or "sentence_transformers", "code_transformer"
 ACTIVE_EMBEDDING_TYPE = "text"
 
 # ============================================================================

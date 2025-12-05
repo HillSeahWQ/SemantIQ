@@ -142,12 +142,12 @@ class EmbeddingManager:
     @staticmethod
     def create_embedder(provider: str, embedding_type: str, config: dict):
         # ...
-        
-        if provider == "my_provider":
-            return MyEmbedder(
-                model_name=config["model"],
-                **config
-            )
+        if embedding_type == "NEW_EMBEDDING_TYPE_FOR_EXAMPLE_CODE_FILES":
+            if provider == "MY_CODE_EMBEDDING_MODEL_PROVIDER":
+                return MyEmbedder(
+                    model_name=config["model"],
+                    **config
+                )
 ```
 
 ### Step 3: Add Configuration

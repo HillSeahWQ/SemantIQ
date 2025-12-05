@@ -68,8 +68,14 @@ Examples:
     parser.add_argument(
         "--embedding-provider",
         type=str,
-        choices=["openai", "sentence_transformers"],
+        choices=["openai", "sentence_transformers", "code_transformers"],
         help=f"Embedding provider (default: from config, currently '{ACTIVE_EMBEDDING_PROVIDER}')"
+    )
+    parser.add_argument(
+        "--embedding-type",
+        type=str,
+        choices=["text", "code"],
+        help=f"Embedding documents types (default: from config, currently '{ACTIVE_EMBEDDING_TYPE}')"
     )
     parser.add_argument(
         "--embedding-model",
@@ -122,6 +128,7 @@ def main():
     # === BUILD CONFIGS ===
     # Embedding config
     embedding_provider = args.embedding_provider or ACTIVE_EMBEDDING_PROVIDER
+    embedding_type = args.embedding_type or ACTIVE_EMBEDDING_TYPE
     embed_config = get_embedding_config().copy()
     
     if args.embedding_model:
@@ -176,7 +183,7 @@ def main():
         
         embedder = EmbeddingManager.create_embedder(
             provider=embedding_provider,
-            embedding_type=ACTIVE_EMBEDDING_TYPE,
+            embedding_type=embedding_type,
             config=embed_config
         )
         

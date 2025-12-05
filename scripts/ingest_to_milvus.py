@@ -33,17 +33,17 @@ def parse_args():
         description="Ingest chunks to Milvus vector database",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-        Examples:
-        # Fast run - minimal arguments
-        python ingest_to_milvus.py --chunks data/chunks/output.json --collection my_collection
-        
-        # Advanced run - with hyperparameters
-        python ingest_to_milvus.py \\
-            --chunks data/chunks/output.json \\
-            --collection my_collection \\
-            --embedding-model text-embedding-3-small \\
-            --index-type HNSW \\
-            --host localhost --port 19530
+Examples:
+  # Fast run - minimal arguments
+  python ingest_to_milvus.py --chunks data/chunks/output.json --collection my_collection
+  
+  # Advanced run - with hyperparameters
+  python ingest_to_milvus.py \\
+    --chunks data/chunks/output.json \\
+    --collection my_collection \\
+    --embedding-model text-embedding-3-small \\
+    --index-type HNSW \\
+    --host localhost --port 19530
         """
     )
     
@@ -80,8 +80,14 @@ def parse_args():
     parser.add_argument(
         "--embedding-provider",
         type=str,
-        choices=["openai", "sentence_transformers"],
+        choices=["openai", "sentence_transformers", "code_transformers"],
         help=f"Embedding provider (default: from config, currently '{ACTIVE_EMBEDDING_PROVIDER}')"
+    )
+    parser.add_argument(
+        "--embedding-type",
+        type=str,
+        choices=["text", "code"],
+        help=f"Embedding documents types (default: from config, currently '{ACTIVE_EMBEDDING_TYPE}')"
     )
     parser.add_argument(
         "--embedding-model",
@@ -138,6 +144,7 @@ def main():
     
     # Embedding config
     embedding_provider = args.embedding_provider or ACTIVE_EMBEDDING_PROVIDER
+    embedding_type = args.embedding_type or ACTIVE_EMBEDDING_TYPE
     embed_config = get_embedding_config().copy()
     
     if args.embedding_model:
@@ -189,7 +196,7 @@ def main():
         
         embedder = EmbeddingManager.create_embedder(
             provider=embedding_provider,
-            embedding_type=ACTIVE_EMBEDDING_TYPE,
+            embedding_type=embedding_type,
             config=embed_config
         )
         
