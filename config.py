@@ -169,7 +169,7 @@ EMBEDDING_CONFIG = {
 }
 
 # Current embedding provider to use
-ACTIVE_EMBEDDING_PROVIDER = "openai"  # or "sentence_transformers"
+ACTIVE_EMBEDDING_PROVIDER = "openai"  # or "sentence_transformers", "code_transformer"
 ACTIVE_EMBEDDING_TYPE = "text"
 
 # ============================================================================
