@@ -186,19 +186,19 @@ class EmbeddingManager:
         """
         if config is None:
             config = {}
-        
-        if provider == "openai":
-            return OpenAIEmbedder(
-                model=config.get("model", "text-embedding-3-large"),
-                batch_size=config.get("batch_size", 64),
-                normalize=config.get("normalize", True)
-            )
-        elif provider == "sentence_transformers":
-            return SentenceTransformerEmbedder(
-                model=config.get("model", "sentence-transformers/all-MiniLM-L6-v2"),
-                batch_size=config.get("batch_size", 64),
-                normalize=config.get("normalize", True)
-            )
+        if embedding_type == "text":
+            if provider == "openai":
+                return OpenAIEmbedder(
+                    model=config.get("model", "text-embedding-3-large"),
+                    batch_size=config.get("batch_size", 64),
+                    normalize=config.get("normalize", True)
+                )
+            elif provider == "sentence_transformers":
+                return SentenceTransformerEmbedder(
+                    model=config.get("model", "sentence-transformers/all-MiniLM-L6-v2"),
+                    batch_size=config.get("batch_size", 64),
+                    normalize=config.get("normalize", True)
+                )
         else:
             raise ValueError(f"Unknown embedding provider: {provider}")
     
