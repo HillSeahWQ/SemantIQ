@@ -17,7 +17,9 @@ from config import (
     get_chunk_output_path,
     CHUNKING_CONFIG,
     EXPERIMENT_CONFIG,
-    DATA_DIR
+    DATA_DIR,
+    CHUNKS_DIR,
+    INPUT_FOLDER_NAME
 )
 from chunking.pdf_chunker import MultimodalPDFChunker
 from chunking.word_doc_chunker import WordDocumentChunker
@@ -396,9 +398,9 @@ def main():
         output_file = Path(args.output)
         # Support relative paths from data/
         if not output_file.is_absolute():
-            output_file = DATA_DIR / args.output
+            output_file = CHUNKS_DIR / args.output
     else:
-        output_file = get_chunk_output_path()
+        output_file = get_chunk_output_path(INPUT_FOLDER_NAME)
     
     # Create output directory
     output_file.parent.mkdir(parents=True, exist_ok=True)

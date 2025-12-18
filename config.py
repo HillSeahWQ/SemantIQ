@@ -10,11 +10,8 @@ from typing import Dict, Any
 # ============================================================================
 INPUT_FOLDER_NAME = "test" # TODO: Edit input folder name - decides: chunks output file name, indices output file name
 
-INPUT_FOLDER_NAME = "test" # TODO: Edit input folder name - decides: chunks output file name, indices output file name
-
 PROJECT_ROOT = Path(__file__).parent
 DATA_DIR = PROJECT_ROOT / "data"
-INPUT_DIR = DATA_DIR / INPUT_FOLDER_NAME
 INPUT_DIR = DATA_DIR / INPUT_FOLDER_NAME
 CHUNKS_DIR = DATA_DIR / "chunks"
 LOGS_DIR = PROJECT_ROOT / "logs"
